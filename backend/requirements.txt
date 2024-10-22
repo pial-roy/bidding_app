@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+motor  # For MongoDB async driver
+pydantic
+bcrypt
+pyjwt
+pytz
+jose
+dotenv
