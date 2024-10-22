@@ -1,1 +1,1 @@
-python -m pip install pydantic bcrypt pyjwt motor pytz fastapi uvicorn jose dotenv
+python -m pip install pydantic bcrypt pyjwt motor pytz fastapi uvicorn jose dotenv httpx

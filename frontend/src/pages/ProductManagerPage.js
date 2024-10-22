@@ -15,20 +15,30 @@ const ProductManagerPage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingProductId, setEditingProductId] = useState(null);
 
+  // Fetch products on component mount
   useEffect(() => {
     fetchProducts();
   }, []);
 
+  // Function to fetch products from the API
   const fetchProducts = async () => {
     try {
-      const response = await fetch(API_ENDPOINTS.PRODUCTS);
-      const data = await response.json();
-      setProducts(data);
+      const response = await fetch(API_ENDPOINTS.PRODUCTS, {
+        method: 'GET',
+        credentials: 'include'  // Include cookies in the request
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProducts(data);
+      } else {
+        console.error('Failed to fetch products:', response.statusText);
+      }
     } catch (error) {
       console.error('Error fetching products:', error);
     }
   };
 
+  // Function to add a new product
   const addProduct = async (e) => {
     e.preventDefault();
     try {
@@ -46,11 +56,12 @@ const ProductManagerPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(productToAdd),
+        credentials: 'include' // Include credentials
       });
 
       if (response.ok) {
-        fetchProducts();
-        setNewProduct({ name: '', description: '', starting_price: '', auction_start_time: null, duration: '' });
+        fetchProducts(); // Refresh product list
+        setNewProduct({ name: '', description: '', starting_price: '', auction_start_time: null, duration: '' }); // Reset form
       } else {
         alert('Failed to add product');
       }
@@ -59,6 +70,7 @@ const ProductManagerPage = () => {
     }
   };
 
+  // Function to edit an existing product
   const editProduct = async (productId) => {
     try {
       const utcAuctionStartTime = newProduct.auction_start_time ? 
@@ -74,24 +86,29 @@ const ProductManagerPage = () => {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(productToEdit),
+        credentials: 'include' // Include credentials
       });
 
       if (response.ok) {
-        fetchProducts();
-        setIsEditing(false);
-        setNewProduct({ name: '', description: '', starting_price: '', auction_start_time: null, duration: '' });
-        setEditingProductId(null);
+        fetchProducts(); // Refresh product list
+        setIsEditing(false); // Reset editing state
+        setNewProduct({ name: '', description: '', starting_price: '', auction_start_time: null, duration: '' }); // Reset form
+        setEditingProductId(null); // Clear editing product ID
+      } else {
+        alert('Failed to update product');
       }
     } catch (error) {
       console.error('Error editing product:', error);
     }
   };
 
+  // Function to delete a product
   const deleteProduct = async (productId) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
       try {
         const response = await fetch(`${API_ENDPOINTS.PRODUCTS}${productId}`, {
           method: 'DELETE',
+          credentials: 'include' // Include credentials
         });
         if (response.ok) {
           fetchProducts(); // Refresh product list after deletion
@@ -104,12 +121,13 @@ const ProductManagerPage = () => {
     }
   };
 
+  // Function to handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
     if (isEditing) {
-      editProduct(editingProductId);
+      editProduct(editingProductId); // Edit the product
     } else {
-      addProduct(e);
+      addProduct(e); // Add a new product
     }
   };
 
@@ -144,6 +162,7 @@ const ProductManagerPage = () => {
           showTimeSelect
           dateFormat="Pp"
           placeholderText="Select auction start time"
+          required
         />
         <input
           type="number"
@@ -157,14 +176,11 @@ const ProductManagerPage = () => {
       <ul>
         {products.map(product => (
           <li key={product.id}>
-            {product.name} - ${product.starting_price}
-            <br />
-            {product.description}
-            <br />
-            Auction starts at: {new Date(product.auction_start_time).toLocaleString()}
-            <br />
-            Duration: {product.duration} minutes
-            <br />
+            <h3>{product.name}</h3>
+            <p>Starting Price: ${product.starting_price}</p>
+            <p>Description: {product.description}</p>
+            <p>Auction starts at: {new Date(product.auction_start_time).toLocaleString()}</p>
+            <p>Duration: {product.duration} minutes</p>
             <button onClick={() => {
               setIsEditing(true);
               setNewProduct({

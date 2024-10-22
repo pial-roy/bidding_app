@@ -22,8 +22,8 @@ const App = () => {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/home" element={<ProtectedRoute element={<HomePage />} />} />
-          <Route path="/admin/products" element={<ProtectedRoute element={<ProductManagerPage />} />} />
-          <Route path="/bid/:itemId" element={<ProtectedRoute element={<BiddingPage />} />} />
+          <Route path="/admin/products" element={<ProductManagerPage />} />
+          <Route path="/bid/:itemId" element={<ProtectedRoute element={<BiddingPage />}  />} />
           <Route path="/" element={
             <div>
               <h1>Welcome to the Retail Auction App!</h1>

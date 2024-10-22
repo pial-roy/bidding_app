@@ -1,38 +1,28 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 
-// Create the AuthContext
-const AuthContext = createContext();
+const AuthContext = React.createContext();
 
-// AuthProvider component to provide authentication state
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
+
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Check for token in local storage on component mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    setIsAuthenticated(!!token); // Update state based on token presence
+    // Check if session cookie exists (adjust cookie name as necessary)
+    const sessionId = document.cookie.split('; ').find(row => row.startsWith('session_id='));
+    if (sessionId) {
+      setIsAuthenticated(true);
+    }
   }, []);
 
-  // Login function to set authenticated state
-  const login = () => {
-    setIsAuthenticated(true);
-  };
+  const login = () => setIsAuthenticated(true);
+  const logout = () => setIsAuthenticated(false);
 
-  // Logout function to clear authenticated state and remove token
-  const logout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem('token'); // Clear token from local storage
-  };
-
-  // Provide authentication state and functions to the children components
   return (
     <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
-};
-
-// Custom hook to use the AuthContext
-export const useAuth = () => {
-  return useContext(AuthContext);
 };

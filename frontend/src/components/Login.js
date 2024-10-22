@@ -1,56 +1,57 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { API_ENDPOINTS } from '../utils/api';  // Adjust the path based on your structure
+import { API_ENDPOINTS } from '../utils/api';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
-  const [email, setEmail] = useState('');  // Changed from username to email
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { login } = useAuth();
+  const navigate = useNavigate();  // Use useNavigate for redirection
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    const response = await fetch(API_ENDPOINTS.LOGIN, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }), // Use email instead of username
-    });
 
-    let data;  // Declare data here
+    try {
+      const response = await fetch(API_ENDPOINTS.LOGIN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (response.ok) {
-      data = await response.json(); // Assign data if response is OK
-      localStorage.setItem('token', data.access_token); // Store the token
-      login(); // Set authenticated state
-      window.location.href = '/home'; // Redirect to home page
-    } else {
-      alert('Login failed');
-    }
-    
-    // Log data only if it's defined
-    if (data) {
-      console.log('Login response:', data);
-      console.log('Storing token:', data.access_token);
+      if (response.ok) {
+        login();  // Update the app's login state
+        navigate('/home', '');  // Redirect to home page after successful login
+      } else {
+        alert('Login failed. Please check your credentials.');
+      }
+    } catch (error) {
+      console.error('Error during login:', error);
+      alert('An error occurred during login. Please try again later.');
     }
   };
 
   return (
-    <form onSubmit={handleLogin}>
-      <input
-        type="email"  // Input type set to email
-        placeholder="Email"
-        value={email}  // Changed from username to email
-        onChange={(e) => setEmail(e.target.value)}  // Set email instead of username
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      <button type="submit">Login</button>
-    </form>
+    <div>
+      <h2>Login</h2>
+      <form onSubmit={handleLogin}>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+        <button type="submit">Login</button>
+      </form>
+    </div>
   );
 };
 

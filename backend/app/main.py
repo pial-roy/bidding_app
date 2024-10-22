@@ -1,18 +1,28 @@
-# backend/app/main.py
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response  # Import Response here
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from .database import get_database
-from .crud import router as crud_router
+from .crud import router as crud_route
+from .bid import bid_router
 import bcrypt
 from datetime import timedelta
 from .oauth2 import create_access_token
 from dotenv import load_dotenv
 import os
+
+from starlette.middleware.sessions import SessionMiddleware
+
+app = FastAPI()
+# Register routes for auction items
+app.include_router(crud_route)
+# Register the bid router
+app.include_router(bid_router)
+# Configure session middleware
+app.add_middleware(SessionMiddleware, secret_key="your_secret_key", max_age=3600)  # Set max_age to 1 hour (or whatever you need)
+
 # Load environment variables
 load_dotenv()
 print(f"MONGODB_URL: {os.getenv('MONGODB_URL')}")  # Add this line to debug the URL
-app = FastAPI()
 
 # Add CORS middleware with dynamic origin
 origins = [
@@ -22,13 +32,10 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=True, #Allow cookies
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Register routes for auction items
-app.include_router(crud_router)
 
 # User-related routes
 class UserCreate(BaseModel):
@@ -60,20 +67,21 @@ async def register_user(user: UserCreate):
     return {"message": "User registered successfully!"}
 
 @app.post("/login/")
-async def login_user(user: UserLogin):
+async def login_user(user: UserLogin, response: Response):  # Now Response is defined
     db = await get_database()
     db_user = await db.users.find_one({"email": user.email})
 
-    if not db_user:
+    if not db_user or not bcrypt.checkpw(user.password.encode('utf-8'), db_user['password'].encode('utf-8')):
         raise HTTPException(status_code=400, detail="Invalid email or password")
 
-    if not bcrypt.checkpw(user.password.encode('utf-8'), db_user['password'].encode('utf-8')):
-        raise HTTPException(status_code=400, detail="Invalid email or password")
+    # Instead of generating a JWT, generate a session ID and store it
+    session_id = str(db_user["_id"])  # Or create a random session ID
+    response.set_cookie(
+    key="session_id",
+    value=session_id,
+    httponly=True,
+    samesite="Lax",  # Use 'Strict' or 'Lax' depending on your requirements
+    secure=False  # Set to True if using HTTPS
+)
 
-    # Create a JWT token
-    access_token_expires = timedelta(minutes=30)
-    access_token = create_access_token(
-        data={"sub": str(db_user["_id"])}, expires_delta=access_token_expires
-    )
-
-    return {"access_token": access_token, "token_type": "bearer", "username": db_user["username"]}
+    return {"message": "Login successful", "username": db_user["username"]}

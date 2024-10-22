@@ -1,4 +1,3 @@
-// src/BiddingPage.js
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { API_ENDPOINTS } from '../utils/api';
@@ -7,50 +6,64 @@ const BiddingPage = () => {
     const { itemId } = useParams(); // Get the itemId from the URL
     const [product, setProduct] = useState({});
     const [bidAmount, setBidAmount] = useState('');
+    const [loading, setLoading] = useState(true);
+
+    const fetchItem = async () => {
+        try {
+            const response = await fetch(API_ENDPOINTS.ITEM(itemId)); // Use itemId in the endpoint
+            if (!response.ok) {
+                throw new Error('Failed to fetch product data');
+            }
+            const data = await response.json();
+            setProduct(data);
+        } catch (error) {
+            console.error(error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchItem = async () => {
-            const response = await fetch(API_ENDPOINTS.ITEM);
-            if (response.ok) {
-                const data = await response.json();
-                setProduct(data);
-            } else {
-                console.error('Failed to fetch product:', response.statusText);
-            }
-        };
-        fetchItem();
+        fetchItem(); // Fetch item when the component mounts
     }, [itemId]);
 
     const handleBid = async (e) => {
         e.preventDefault();
-        const token = localStorage.getItem('token'); // Retrieve the stored token
-        const user = JSON.parse(atob(token.split('.')[1])); // Decode JWT token to get user info
-    
-        const response = await fetch(API_ENDPOINTS.PLACE_BID, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`, // Include the JWT token
-            },
-            body: JSON.stringify({
-                amount: parseFloat(bidAmount),
-                username: user.username, // Include username
-                item_id: itemId,  // Include the item ID
-                timestamp: new Date().toISOString(), // Add timestamp
-            }),
-        });
-    
-        if (response.ok) {
+        const bidValue = parseFloat(bidAmount);
+        if (isNaN(bidValue) || bidValue <= product.current_highest_bid) {
+            alert('Please place a valid bid higher than the current highest bid.');
+            return;
+        }
+
+        try {
+            const response = await fetch(API_ENDPOINTS.PLACE_BID(itemId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',  // Include cookies in the request
+                body: JSON.stringify({
+                    amount: bidValue,
+                    item_id: itemId,
+                    timestamp: new Date().toISOString(),
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'An error occurred while placing the bid.');
+            }
+
             alert('Bid placed successfully!');
             setBidAmount('');
-            // Optionally, refetch the product to update bids
-            // fetchItem();
-        } else {
-            const errorData = await response.json();
-            console.error('Error details:', errorData); // Log the error object to the console
-            alert(errorData.detail || 'An error occurred while placing the bid.'); // Provide a user-friendly message
+            fetchItem(); // Refetch the updated bids
+        } catch (error) {
+            console.error(error.message);
+            alert(error.message);
         }
     };
+
+    if (loading) return <p>Loading...</p>;
 
     return (
         <div>
